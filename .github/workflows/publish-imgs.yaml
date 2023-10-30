@@ -1,0 +1,24 @@
+name: Publish images to the DockerHub
+on:
+  [workflow_dispatch]
+
+jobs:
+  publish:
+    runs_on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+      - name: build node server
+        run: |
+          docker build simple-api/Dockerfile -t ghcr.io/jjisolo/ns-img:latest
+      - name: build mongo server
+        run: |
+          docker build simple-api/Dockerfile.mongo -t ghcr.io/jjisolo/ms-img:latest
+      - name: publish node server
+        run: |
+          docker login --username jjisolo --password ${{ secrets.REGISTRY_KEY }} ghcr.io
+          docker push ghcr.io/jjisolo/ns-img:latest
+      - name: publish mongo server
+        run: |
+          docker login --username jjisolo --password ${{ secrets.REGISTRY_KEY }} ghcr.io
+          docker push ghcr.io/jjisolo/ms-img:latest
