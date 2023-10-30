@@ -51,11 +51,17 @@ class EcsStack(cdk.Stack):
             nat_gateways=0
         )
 
-        # Create the cluster based on the freshly baked VPC
-        self.cluster = ecs.Cluster(
+        # Create the clusters based on the freshly baked VPC's
+        self.public_cluster = ecs.Cluster(
             self,
             "SirinNodeCluster",
             vpc=self.public_vpc
+        )
+
+        self.private_cluster = ecs.Cluster(
+            self,
+            "SirinMongoCluster",
+            vpc=self.private_vpc
         )
 
     def __init_docker_containers(self) -> None:
@@ -116,18 +122,30 @@ class EcsStack(cdk.Stack):
             "Allow inbound access from the NodeJS server"
         )
 
-
     def __attach_alb(self) -> None:
 
-        # Attach the ALB
+        # Attach the ALB for the NodeJS container.
         self.node_service = ecs_patterns.ApplicationLoadBalancedFargateService(
             self,
             "SirinNodeService",
-            cluster=self.cluster,
+            cluster=self.public_cluster,
             task_definition=self.nodejs_server_task_definition,
             memory_limit_mib=4096,
             desired_count=1,
             public_load_balancer=True,
+            security_groups=[self.nodejs_server_security_group],
         )
-    
+
+        # Attach the ALB for the MongoDB container.
+        self.mongo_service = ecs_patterns.ApplicationLoadBalancedFargateService(
+            self,
+            "SirinMongoService",
+            cluster=self.private_cluster,
+            task_definition=self.mongo_server_task_definition,
+            memory_limit_mib=4096,
+            desired_count=1,
+            public_load_balancer=True,
+            security_groups=[self.mongo_server_security_group],
+        )
+
 
