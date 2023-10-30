@@ -10,10 +10,10 @@ jobs:
         uses: actions/checkout@v3
       - name: build node server
         run: |
-          cd ./simple-api && docker build ./simple-api/ -t ghcr.io/jjisolo/ns-img:latest
+          cd simple-api && docker build . -t ghcr.io/jjisolo/ns-img:latest
       - name: build mongo server
         run: |
-          cd ./simple-api && docker build ./docker/mongo -t ghcr.io/jjisolo/ms-img:latest
+          cd simple-api && docker build docker/mongo/ -t ghcr.io/jjisolo/ms-img:latest
       - name: login to the github registry
         uses: docker/login-action@v1
         with: 
