@@ -37,31 +37,27 @@ class EcsStack(cdk.Stack):
     def __init_vpc_and_clusters(self) -> None:
 
         # Create the VPC for the NodeJS container.
-        self.public_vpc = ec2.Vpc(
+        self.vpc = ec2.Vpc(
             self,
             "SirinNodeStack",
-            max_azs=2
-        )
-        
-        # Create the VPC for the NodeJS container.
-        self.private_vpc = ec2.Vpc(
-            self,
-            "SirinMongoStack",
             max_azs=2,
-            nat_gateways=0
+            subnet_configuration = [
+                ec2.SubnetConfiguration(
+                    name="PublicSubNet",
+                    subnet_type=ec2.SubnetType.PUBLIC
+                ),
+                ec2.SubnetConfiguration(
+                    name="PrivateSubNet",
+                    subnet_type=ec2.SubnetType.PRIVATE_ISOLATED
+                ),
+            ]
         )
 
-        # Create the clusters based on the freshly baked VPC's
+        # Create the clusters based on the freshly baked VPC
         self.public_cluster = ecs.Cluster(
             self,
             "SirinNodeCluster",
-            vpc=self.public_vpc
-        )
-
-        self.private_cluster = ecs.Cluster(
-            self,
-            "SirinMongoCluster",
-            vpc=self.private_vpc
+            vpc=self.vpc
         )
 
     def __init_docker_containers(self) -> None:
@@ -109,11 +105,11 @@ class EcsStack(cdk.Stack):
 
     def __configure_ingress_rules(self) -> None:
         self.nodejs_server_security_group = ec2.SecurityGroup(
-            self, "NodejsServerSecurityGroup", vpc=self.public_vpc
+            self, "NodejsServerSecurityGroup", vpc=self.vpc
         )
 
         self.mongo_server_security_group = ec2.SecurityGroup(
-            self, "MongoServerSecurityGroup", vpc=self.private_vpc
+            self, "MongoServerSecurityGroup", vpc=self.vpc
         )
 
         self.mongo_server_security_group.add_ingress_rule(
@@ -135,17 +131,3 @@ class EcsStack(cdk.Stack):
             public_load_balancer=True,
             security_groups=[self.nodejs_server_security_group],
         )
-
-        # Attach the ALB for the MongoDB container.
-        self.mongo_service = ecs_patterns.ApplicationLoadBalancedFargateService(
-            self,
-            "SirinMongoService",
-            cluster=self.private_cluster,
-            task_definition=self.mongo_server_task_definition,
-            memory_limit_mib=4096,
-            desired_count=1,
-            public_load_balancer=True,
-            security_groups=[self.mongo_server_security_group],
-        )
-
-
