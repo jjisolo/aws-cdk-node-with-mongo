@@ -31,6 +31,7 @@ jobs:
         with:
           context: simple-api/
           push: true
+          tags: ghct.io/node:main
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{steps.meta.outputs.labels }}
 
@@ -39,5 +40,6 @@ jobs:
         with:
           context: simple-api/docker/mongo/
           push: true
+          tags: ghct.io/mongo:main
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{steps.meta.outputs.labels }}
