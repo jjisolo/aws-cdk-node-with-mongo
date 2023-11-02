@@ -31,7 +31,7 @@ jobs:
         with:
           context: simple-api/
           push: true
-          tags: ghct.io/node:main
+          tags: ghcr.io/jjisolo/node:main
           labels: ${{steps.meta.outputs.labels }}
 
       - name: Build and push node docker image 
@@ -39,5 +39,5 @@ jobs:
         with:
           context: simple-api/docker/mongo/
           push: true
-          tags: ghct.io/mongo:main
+          tags: ghcr.io/jjisolo/mongo:main
           labels: ${{steps.meta.outputs.labels }}
