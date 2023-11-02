@@ -5,24 +5,39 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
     steps:
       - name: checkout
         uses: actions/checkout@v3
-      - name: build node server
-        run: |
-          cd simple-api && docker build . -t ghcr.io/jjisolo/ns-img:latest
-      - name: build mongo server
-        run: |
-          cd simple-api && docker build docker/mongo/ -t ghcr.io/jjisolo/ms-img:latest
-      - name: login to the github registry
-        uses: docker/login-action@v1
-        with: 
+
+      - name: Login to ghcr
+        uses: docker/login-action@v2
+        with:
           registry: ghcr.io
-          username: ${{ github.repository_owner }}
+          username: ${{ github.actor }}
           password: ${{ secrets.REGISTRY_KEY }}
-      - name: publish node server
-        run: |
-          docker push ghcr.io/jjisolo/ns-img:latest
-      - name: publish mongo server
-        run: |
-          docker push ghcr.io/jjisolo/ms-img:latest
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ghct.io/${{ github.respository }}
+
+      - name: Build and push node docker image 
+        uses: docker/build-push-action@v3
+        with:
+          context: simple-api/
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{steps.meta.outputs.labels }}
+
+      - name: Build and push node docker image 
+        uses: docker/build-push-action@v3
+        with:
+          context: simple-api/docker/mongo/
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{steps.meta.outputs.labels }}
