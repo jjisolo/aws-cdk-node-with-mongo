@@ -1,6 +1,7 @@
 name: Publish images to the DockerHub
 on:
-  [workflow_dispatch]
+  push:
+    branches: ['main']
 
 jobs:
   publish:
