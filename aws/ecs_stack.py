@@ -5,21 +5,22 @@ from aws_cdk import (
     aws_ecs as ecs,
     aws_ecs_patterns as ecs_patterns,
     aws_elasticloadbalancingv2 as elbv2,
-    aws_secretsmanager as secretsmanager,
+    aws_ssm as ssm,
 )
 
-class EcsStack(cdk.Stack):
-    NODE_CONTAINER_REGISTRY_NAME   = "ghcr.io/jjisolo/node:main"
-    MONGO_CONTAINER_REGISTRY_NAME  = "ghcr.io/jjisolo/mongo:main"
 
-    NODE_CONTAINER_LOG_ENTITY_NAME  = "SirinNodeServer"
+class EcsStack(cdk.Stack):
+    NODE_CONTAINER_REGISTRY_NAME = "ghcr.io/jjisolo/node:main"
+    MONGO_CONTAINER_REGISTRY_NAME = "ghcr.io/jjisolo/mongo:main"
+
+    NODE_CONTAINER_LOG_ENTITY_NAME = "SirinNodeServer"
     MONGO_CONTAINER_LOG_ENTITY_NAME = "SirinMongoServer"
 
     HEALTH_CHECK_PATH = "/"
 
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
-        
+
         self.__init_secrets_manager()
         self.__init_vpc_and_clusters()
 
@@ -28,7 +29,7 @@ class EcsStack(cdk.Stack):
 
         self.__attach_alb()
         self.__init_health_check()
-       
+
         # Configure the URL for the service
         cdk.CfnOutput(
             self,
@@ -36,28 +37,24 @@ class EcsStack(cdk.Stack):
             value=f"http://{self.node_service.load_balancer.load_balancer_dns_name}"
         )
 
-
     def __init_secrets_manager(self) -> None:
-        self.registry_secrets = secretsmanager.Secret(
-            self,
-            "MongoSecret",
-            secret_name="MongoSecretCredentials",
-            generate_secret_string= {
-                "password_length": 20,
-            }
-        )
+        self.database_username = ssm.StringParameter.from_string_parameter_name(
+            self, "MongoDbUsername",
+            "/WorkTask/DatabaseUsername"
+        ).string_value
 
-        self.registry_mongo_username = self.registry_secrets.secret_value_from_json("username")
-        self.registry_mongo_password = self.registry_secrets.secret_value_from_json("password")
+        self.database_password = ssm.StringParameter.from_string_parameter_name(
+            self, "MongoDbPassword",
+            "/WorkTask/DatabasePassword"
+        ).string_value
 
     def __init_vpc_and_clusters(self) -> None:
-
         # Create the VPC for the NodeJS container.
         self.vpc = ec2.Vpc(
             self,
             "SirinNodeStack",
             max_azs=2,
-            subnet_configuration = [
+            subnet_configuration=[
                 ec2.SubnetConfiguration(
                     name="PublicSubNet",
                     subnet_type=ec2.SubnetType.PUBLIC
@@ -77,7 +74,6 @@ class EcsStack(cdk.Stack):
         )
 
     def __init_docker_containers(self) -> None:
-
         # Create the Fargate task definition and attach the container
         # with the NodeJS app to it.
         self.nodejs_server_task_definition = ecs.FargateTaskDefinition(
@@ -91,8 +87,8 @@ class EcsStack(cdk.Stack):
             logging=ecs.LogDrivers.aws_logs(stream_prefix=EcsStack.NODE_CONTAINER_LOG_ENTITY_NAME),
             port_mappings=[ecs.PortMapping(container_port=80)],
             environment={
-                "MONGO_INITDB_ROOT_USERNAME": self.registry_mongo_username.to_string(),
-                "MONGO_INITDB_ROOT_PASSWORD": self.registry_mongo_password.to_string(),
+                "MONGO_INITDB_ROOT_USERNAME": self.database_username,
+                "MONGO_INITDB_ROOT_PASSWORD": self.database_password,
             }
         )
 
@@ -109,15 +105,14 @@ class EcsStack(cdk.Stack):
             logging=ecs.LogDrivers.aws_logs(stream_prefix=EcsStack.MONGO_CONTAINER_LOG_ENTITY_NAME),
             port_mappings=[ecs.PortMapping(container_port=27017)],
             environment={
-                "MONGO_INITDB_ROOT_USERNAME": self.registry_mongo_username.to_string(),
-                "MONGO_INITDB_ROOT_PASSWORD": self.registry_mongo_password.to_string(),
+                "MONGO_INITDB_ROOT_USERNAME": self.database_username,
+                "MONGO_INITDB_ROOT_PASSWORD": self.database_password,
                 "MONGO_INITDB_DATABASE": "mydatabase"
             }
 
         )
 
     def __init_health_check(self) -> None:
-
         # Configure health check
         self.node_service.target_group.configure_health_check(
             path=EcsStack.HEALTH_CHECK_PATH,
@@ -145,7 +140,6 @@ class EcsStack(cdk.Stack):
         )
 
     def __attach_alb(self) -> None:
-
         # Attach the ALB for the NodeJS container.
         self.node_service = ecs_patterns.ApplicationLoadBalancedFargateService(
             self,
