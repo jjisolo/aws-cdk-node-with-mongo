@@ -3,7 +3,11 @@ const mongoose = require('mongoose');
 
 const port = 80; 
 
-const MONGO_URI="mongodb+srv://jjisolo:testtest@cluster0.5erxpbu.mongodb.net/?retryWrites=true&w=majority";
+const MONGO_USERNAME = process.env.MONGO_INITDB_ROOT_USERNAME
+const MONGO_PASSWORD = process.env.MONGO_INITDB_ROOT_PASSWORD
+const MOGNO_DB_NAME  = process.env.MONGO_INITDB_DATABASE
+const MONGO_HOST     = 'localhost'
+const MONGO_URI      = `mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@${MONGO_HOST}:27017/${MONGO_DB}`;
 
 const Device = mongoose.model('Device', {
   device_name : String,

@@ -5,11 +5,12 @@ from aws_cdk import (
     aws_ecs as ecs,
     aws_ecs_patterns as ecs_patterns,
     aws_elasticloadbalancingv2 as elbv2,
+    aws_secretsmanager as secretsmanager,
 )
 
 class EcsStack(cdk.Stack):
-    NODE_CONTAINER_REGISTRY_NAME   = "ghcr.io/jjisolo/ns-img:latest"
-    MONGO_CONTAINER_REGISTRY_NAME  = "ghcr.io/jjisolo/ms-img:latest"
+    NODE_CONTAINER_REGISTRY_NAME   = "ghcr.io/jjisolo/node:main"
+    MONGO_CONTAINER_REGISTRY_NAME  = "ghcr.io/jjisolo/mongo:main"
 
     NODE_CONTAINER_LOG_ENTITY_NAME  = "SirinNodeServer"
     MONGO_CONTAINER_LOG_ENTITY_NAME = "SirinMongoServer"
@@ -19,6 +20,7 @@ class EcsStack(cdk.Stack):
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
         
+        self.__init_secrets_manager()
         self.__init_vpc_and_clusters()
 
         self.__configure_ingress_rules()
@@ -34,6 +36,20 @@ class EcsStack(cdk.Stack):
             value=f"http://{self.node_service.load_balancer.load_balancer_dns_name}"
         )
 
+
+    def __init_secrets_manager(self) -> None:
+        self.registry_secrets = secretsmanager.Secret(
+            self,
+            "MongoSecret",
+            secret_name="MongoSecretCredentials",
+            generate_secret_string= {
+                "password_length": 20,
+            }
+        )
+
+        self.registry_mongo_username = self.registry_secrets.secret_value_from_json("username")
+        self.registry_mongo_password = self.registry_secrets.secret_value_from_json("password")
+
     def __init_vpc_and_clusters(self) -> None:
 
         # Create the VPC for the NodeJS container.
@@ -48,7 +64,7 @@ class EcsStack(cdk.Stack):
                 ),
                 ec2.SubnetConfiguration(
                     name="PrivateSubNet",
-                    subnet_type=ec2.SubnetType.PRIVATE_ISOLATED
+                    subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS
                 ),
             ]
         )
@@ -73,7 +89,11 @@ class EcsStack(cdk.Stack):
             "NodeServerContainer",
             image=ecs.ContainerImage.from_registry(EcsStack.NODE_CONTAINER_REGISTRY_NAME),
             logging=ecs.LogDrivers.aws_logs(stream_prefix=EcsStack.NODE_CONTAINER_LOG_ENTITY_NAME),
-            port_mappings=[ecs.PortMapping(container_port=80)]
+            port_mappings=[ecs.PortMapping(container_port=80)],
+            environment={
+                "MONGO_INITDB_ROOT_USERNAME": self.registry_mongo_username.to_string(),
+                "MONGO_INITDB_ROOT_PASSWORD": self.registry_mongo_password.to_string(),
+            }
         )
 
         # Create the Fargate task definition and attach the container
@@ -87,7 +107,13 @@ class EcsStack(cdk.Stack):
             "NodeServerContainer",
             image=ecs.ContainerImage.from_registry(EcsStack.MONGO_CONTAINER_REGISTRY_NAME),
             logging=ecs.LogDrivers.aws_logs(stream_prefix=EcsStack.MONGO_CONTAINER_LOG_ENTITY_NAME),
-            port_mappings=[ecs.PortMapping(container_port=27017)]
+            port_mappings=[ecs.PortMapping(container_port=27017)],
+            environment={
+                "MONGO_INITDB_ROOT_USERNAME": self.registry_mongo_username.to_string(),
+                "MONGO_INITDB_ROOT_PASSWORD": self.registry_mongo_password.to_string(),
+                "MONGO_INITDB_DATABASE": "mydatabase"
+            }
+
         )
 
     def __init_health_check(self) -> None:
