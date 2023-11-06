@@ -1,8 +1,5 @@
 name: Publish images to the DockerHub
 on:
-  push:
-    branches: ['main']
-
   workflow-dispatch:
 
 permissions:
