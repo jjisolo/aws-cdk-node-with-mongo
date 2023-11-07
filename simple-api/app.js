@@ -9,8 +9,7 @@ const MONGO_DB_NAME  = process.env.MONGO_INITDB_DATABASE
 const MONGO_HOST     = 'localhost'
 const MONGO_URI      = `mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@${MONGO_HOST}:27017/${MONGO_DB_NAME}`;
 
-console.log(MONGO_USERNAME)
-console.log(MONGO_PASSWORD)
+console.log(MONGO_URI)
 
 const Device = mongoose.model('Device', {
   device_name : String,
@@ -18,7 +17,7 @@ const Device = mongoose.model('Device', {
 })
 
 mongoose
-  .connect(MONGO_URI, { useNewUrlParser: true })
+  .connect(MONGO_URI)
   .then(() => {
     const app = express();
     app.use(express.json())

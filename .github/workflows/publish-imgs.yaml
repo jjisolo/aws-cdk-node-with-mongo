@@ -37,7 +37,7 @@ jobs:
           tags: ghcr.io/jjisolo/node:main
           labels: ${{steps.meta.outputs.labels }}
 
-      - name: Build and push node docker image 
+      - name: Build and push mongo docker image 
         uses: docker/build-push-action@v3
         with:
           context: simple-api/docker/mongo/
