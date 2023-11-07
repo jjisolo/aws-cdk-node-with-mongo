@@ -10,10 +10,10 @@ from aws_cdk import (
 
 
 class EcsStack(cdk.Stack):
-    NODE_CONTAINER_REGISTRY_NAME = "ghcr.io/jjisolo/node:main"
+    NODE_CONTAINER_REGISTRY_NAME  = "ghcr.io/jjisolo/node:main"
     MONGO_CONTAINER_REGISTRY_NAME = "ghcr.io/jjisolo/mongo:main"
 
-    NODE_CONTAINER_LOG_ENTITY_NAME = "SirinNodeServer"
+    NODE_CONTAINER_LOG_ENTITY_NAME  = "SirinNodeServer"
     MONGO_CONTAINER_LOG_ENTITY_NAME = "SirinMongoServer"
 
     HEALTH_CHECK_PATH = "/"
@@ -76,12 +76,12 @@ class EcsStack(cdk.Stack):
     def __init_docker_containers(self) -> None:
         # Create the Fargate task definition and attach the container
         # with the NodeJS app to it.
-        self.nodejs_server_task_definition = ecs.FargateTaskDefinition(
+        self.server_task_definition = ecs.FargateTaskDefinition(
             self,
             "SirinNodeTaskDefinition"
         )
 
-        self.nodejs_server_container = self.nodejs_server_task_definition.add_container(
+        self.nodejs_server_container = self.server_task_definition.add_container(
             "NodeServerContainer",
             image=ecs.ContainerImage.from_registry(EcsStack.NODE_CONTAINER_REGISTRY_NAME),
             logging=ecs.LogDrivers.aws_logs(stream_prefix=EcsStack.NODE_CONTAINER_LOG_ENTITY_NAME),
@@ -89,25 +89,19 @@ class EcsStack(cdk.Stack):
             environment={
                 "MONGO_INITDB_ROOT_USERNAME": self.database_username,
                 "MONGO_INITDB_ROOT_PASSWORD": self.database_password,
+                "MONGO_INITDB_DATABASE"     : "mydatabase"
             }
         )
 
-        # Create the Fargate task definition and attach the container
-        # with the Mongo database to it.
-        self.mongo_server_task_definition = ecs.FargateTaskDefinition(
-            self,
-            "SirinMongoTaskDefinition"
-        )
-
-        self.mongo_server_container = self.mongo_server_task_definition.add_container(
-            "NodeServerContainer",
+        self.mongo_server_container = self.server_task_definition.add_container(
+            "MongoServerContainer",
             image=ecs.ContainerImage.from_registry(EcsStack.MONGO_CONTAINER_REGISTRY_NAME),
             logging=ecs.LogDrivers.aws_logs(stream_prefix=EcsStack.MONGO_CONTAINER_LOG_ENTITY_NAME),
             port_mappings=[ecs.PortMapping(container_port=27017)],
             environment={
                 "MONGO_INITDB_ROOT_USERNAME": self.database_username,
                 "MONGO_INITDB_ROOT_PASSWORD": self.database_password,
-                "MONGO_INITDB_DATABASE": "mydatabase"
+                "MONGO_INITDB_DATABASE"     : "mydatabase"
             }
 
         )
@@ -145,7 +139,7 @@ class EcsStack(cdk.Stack):
             self,
             "SirinNodeService",
             cluster=self.public_cluster,
-            task_definition=self.nodejs_server_task_definition,
+            task_definition=self.server_task_definition,
             memory_limit_mib=4096,
             desired_count=1,
             public_load_balancer=True,
