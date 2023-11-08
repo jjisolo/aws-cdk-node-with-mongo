@@ -11,7 +11,7 @@ from aws_cdk import (
 
 class EcsStack(cdk.Stack):
     NODE_CONTAINER_REGISTRY_NAME  = "ghcr.io/jjisolo/node:main"
-    MONGO_CONTAINER_REGISTRY_NAME = "mongo:latest"
+    MONGO_CONTAINER_REGISTRY_NAME = "mongo"
 
     NODE_CONTAINER_LOG_ENTITY_NAME  = "SirinNodeServer"
     MONGO_CONTAINER_LOG_ENTITY_NAME = "SirinMongoServer"
@@ -81,18 +81,6 @@ class EcsStack(cdk.Stack):
             "SirinNodeTaskDefinition"
         )
 
-        self.nodejs_server_container = self.server_task_definition.add_container(
-            "NodeServerContainer",
-            image=ecs.ContainerImage.from_registry(EcsStack.NODE_CONTAINER_REGISTRY_NAME),
-            logging=ecs.LogDrivers.aws_logs(stream_prefix=EcsStack.NODE_CONTAINER_LOG_ENTITY_NAME),
-            port_mappings=[ecs.PortMapping(container_port=80)],
-            environment={
-                "MONGO_INITDB_ROOT_USERNAME": self.database_username,
-                "MONGO_INITDB_ROOT_PASSWORD": self.database_password,
-                "MONGO_INITDB_DATABASE"     : "mydatabase"
-            }
-        )
-
         self.mongo_server_container = self.server_task_definition.add_container(
             "MongoServerContainer",
             image=ecs.ContainerImage.from_registry(EcsStack.MONGO_CONTAINER_REGISTRY_NAME),
@@ -104,6 +92,19 @@ class EcsStack(cdk.Stack):
                 "MONGO_INITDB_DATABASE"     : "mydatabase"
             }
 
+        )
+
+
+        self.nodejs_server_container = self.server_task_definition.add_container(
+            "NodeServerContainer",
+            image=ecs.ContainerImage.from_registry(EcsStack.NODE_CONTAINER_REGISTRY_NAME),
+            logging=ecs.LogDrivers.aws_logs(stream_prefix=EcsStack.NODE_CONTAINER_LOG_ENTITY_NAME),
+            port_mappings=[ecs.PortMapping(container_port=80)],
+            environment={
+                "MONGO_INITDB_ROOT_USERNAME": self.database_username,
+                "MONGO_INITDB_ROOT_PASSWORD": self.database_password,
+                "MONGO_INITDB_DATABASE"     : "mydatabase"
+            }
         )
 
     def __init_health_check(self) -> None:
