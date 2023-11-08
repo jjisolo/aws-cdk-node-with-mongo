@@ -11,7 +11,7 @@ from aws_cdk import (
 
 class EcsStack(cdk.Stack):
     NODE_CONTAINER_REGISTRY_NAME  = "ghcr.io/jjisolo/node:main"
-    MONGO_CONTAINER_REGISTRY_NAME = "ghcr.io/jjisolo/mongo:main"
+    MONGO_CONTAINER_REGISTRY_NAME = "mongo:latest"
 
     NODE_CONTAINER_LOG_ENTITY_NAME  = "SirinNodeServer"
     MONGO_CONTAINER_LOG_ENTITY_NAME = "SirinMongoServer"
