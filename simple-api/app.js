@@ -7,7 +7,7 @@ const MONGO_USERNAME = process.env.MONGO_INITDB_ROOT_USERNAME
 const MONGO_PASSWORD = process.env.MONGO_INITDB_ROOT_PASSWORD
 const MONGO_DB_NAME  = process.env.MONGO_INITDB_DATABASE
 const MONGO_HOST     = 'localhost'
-const MONGO_URI      = `mongodb://${MONGO_HOST}:27017/${MONGO_DB_NAME}`;
+const MONGO_URI      = `mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@${MONGO_HOST}:27017/${MONGO_DB_NAME}`;
 
 console.log(MONGO_URI)
 
