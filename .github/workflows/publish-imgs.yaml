@@ -32,7 +32,7 @@ jobs:
       - name: Build and push node docker image 
         uses: docker/build-push-action@v3
         with:
-          context: simple-api/
+          context: api/
           push: true
           tags: ghcr.io/jjisolo/node:main
           labels: ${{steps.meta.outputs.labels }}
