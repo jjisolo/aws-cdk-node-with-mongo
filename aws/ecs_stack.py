@@ -135,13 +135,17 @@ class EcsStack(cdk.Stack):
         """
 
     def __attach_alb(self) -> None:
-        # Attach the ALB for the NodeJS container.
+        load_balancer = elbv2.ApplicationLoadBalancer(self, "MyLoadBalancer", vpc=self.vpc, internet_facing=True)
+        listener = load_balancer.add_listener("Listener", port=80)
+        target_group1 = listener.add_targets("TargetGroup1", port=80, targets=[self.nodejs_server_container])
+
         self.node_service = ecs_patterns.ApplicationLoadBalancedFargateService(
-            self,
             "SirinNodeService",
             cluster=self.cluster,
+            internet_facing=True,
             task_definition=self.server_task_definition,
             memory_limit_mib=4096,
+            load_balancer=load_balancer,
             desired_count=1,
             public_load_balancer=True,
             #security_groups=[self.nodejs_server_security_group],
