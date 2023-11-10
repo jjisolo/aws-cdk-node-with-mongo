@@ -144,5 +144,5 @@ class EcsStack(cdk.Stack):
             memory_limit_mib=4096,
             desired_count=1,
             public_load_balancer=True,
-            security_groups=[self.nodejs_server_security_group],
+            #security_groups=[self.nodejs_server_security_group],
         )
