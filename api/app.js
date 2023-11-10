@@ -17,7 +17,7 @@ const Device = mongoose.model('Device', {
 })
 
 mongoose
-  .connect(MONGO_URI)
+  .connect(MONGO_URI, {useNewUrlParser: true})
   .then(() => {
     const app = express();
     app.use(express.json())
