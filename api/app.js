@@ -9,7 +9,6 @@ const MONGO_DB_NAME  = process.env.MONGO_INITDB_DATABASE
 const MONGO_HOST     = 'localhost'
 const MONGO_URI      = `mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@${MONGO_HOST}:27017/${MONGO_DB_NAME}?authSource=admin`;
 
-console.log(MONGO_URI)
 
 const Device = mongoose.model('Device', {
   device_name : String,
@@ -18,13 +17,10 @@ const Device = mongoose.model('Device', {
 
 mongoose
   .connect(MONGO_URI, {useNewUrlParser: true})
-  .then(() => {
+  .then(() => { 
     const app = express();
     app.use(express.json())
-
-    app.get('/', (req, res) => {
-      res.send('Hello, AWS!');
-    });
+    app.get('/', (req, res) => { res.send('Hello, AWS!');});
 
     app.get('/devices', async (req, res) => {
       try {
@@ -64,9 +60,9 @@ mongoose
           return res.status(404).send("Device not found")
         }
         res.json(device)
-     } catch(error) {
+    } catch(error) {
         res.status(500).send(error)
-     }
+    }
     })
 
     app.delete('/devices/:id', async (req, res) => {
