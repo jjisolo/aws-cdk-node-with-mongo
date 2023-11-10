@@ -67,7 +67,7 @@ class EcsStack(cdk.Stack):
         )
 
         # Create the clusters based on the freshly baked VPC
-        self.public_cluster = ecs.Cluster(
+        self.cluster = ecs.Cluster(
             self,
             "SirinNodeCluster",
             vpc=self.vpc
@@ -85,16 +85,13 @@ class EcsStack(cdk.Stack):
             "MongoServerContainer",
             image=ecs.ContainerImage.from_registry(EcsStack.MONGO_CONTAINER_REGISTRY_NAME),
             logging=ecs.LogDrivers.aws_logs(stream_prefix=EcsStack.MONGO_CONTAINER_LOG_ENTITY_NAME),
+            port_mappings=[ecs.PortMapping(container_port=27017)],
             environment={
                 "MONGO_INITDB_ROOT_USERNAME": self.database_username,
                 "MONGO_INITDB_ROOT_PASSWORD": self.database_password,
                 "MONGO_INITDB_DATABASE"     : "mydatabase"
             }
         )
-
-        self.mongo_server_container.add_port_mappings({
-            27117: 27017
-        })
 
         self.nodejs_server_container = self.server_task_definition.add_container(
             "NodeServerContainer",
@@ -121,6 +118,7 @@ class EcsStack(cdk.Stack):
         )
 
     def __configure_ingress_rules(self) -> None:
+        """
         self.nodejs_server_security_group = ec2.SecurityGroup(
             self, "NodejsServerSecurityGroup", vpc=self.vpc
         )
@@ -134,13 +132,14 @@ class EcsStack(cdk.Stack):
             ec2.Port.tcp(27017),
             "Allow inbound access from the NodeJS server"
         )
+        """
 
     def __attach_alb(self) -> None:
         # Attach the ALB for the NodeJS container.
         self.node_service = ecs_patterns.ApplicationLoadBalancedFargateService(
             self,
             "SirinNodeService",
-            cluster=self.public_cluster,
+            cluster=self.cluster,
             task_definition=self.server_task_definition,
             memory_limit_mib=4096,
             desired_count=1,
