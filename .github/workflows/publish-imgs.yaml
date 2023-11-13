@@ -53,7 +53,7 @@ jobs:
         uses: youyo/aws-cdk-github-actions@v2
         with:
           cdk_subcommand: 'deploy'
-          cdk_stack: 'SirinNodeStack1'
+          cdk_stack: 'SirinNodeStack2'
           cdk_args: '--require-approval never'
           actions_comment: false
         env:
