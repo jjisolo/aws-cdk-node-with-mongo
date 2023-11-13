@@ -36,8 +36,8 @@ jobs:
           push: true
           tags: ghcr.io/jjisolo/node:main
           labels: ${{steps.meta.outputs.labels }}
-        env:
-          GIT_HASH: ${{ github.sha }}
+        secrets: |
+          "GIT_HASH=${{ github.sha }}"
      
       - name: cdk diff
         uses: youyo/aws-cdk-github-actions@v2
@@ -53,7 +53,7 @@ jobs:
         uses: youyo/aws-cdk-github-actions@v2
         with:
           cdk_subcommand: 'deploy'
-          cdk_stack: 'SirinNodeStack2'
+          cdk_stack: 'SirinNodeStack'
           cdk_args: '--require-approval never'
           actions_comment: false
         env:
