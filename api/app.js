@@ -4,6 +4,8 @@ const simpleGit= require('simple-git')
 
 const port = 80; 
 
+const GIT_HASH = process.env.GIT_HASH
+
 const MONGO_USERNAME = process.env.MONGO_INITDB_ROOT_USERNAME
 const MONGO_PASSWORD = process.env.MONGO_INITDB_ROOT_PASSWORD
 const MONGO_DB_NAME  = process.env.MONGO_INITDB_DATABASE
@@ -23,11 +25,7 @@ mongoose
     app.use(express.json())
 
     app.get('/', (req, res) => {
-      revision = require('child_process')
-        .execSync('git rev-parse HEAD')
-        .toString().trim()
-
-      res.json('Hello, AWS! ' + revision)
+      res.json('Hello, AWS! ' + GIT_HASH)
     });
 
     app.get('/devices', async (req, res) => {

@@ -29,6 +29,10 @@ jobs:
         with:
           images: ghct.io/${{ github.respository }}
 
+      - name: Get last commit hash
+        id: git_hash
+        run: echo "GIT_HASH=$(git rev-parse HEAD)" >> $GITHUB_ENV
+
       - name: Build and push node docker image 
         uses: docker/build-push-action@v3
         with:
@@ -36,6 +40,8 @@ jobs:
           push: true
           tags: ghcr.io/jjisolo/node:main
           labels: ${{steps.meta.outputs.labels }}
+          env:
+            GIT_HASH: ${{ steps.git_hash.outputs.GIT_HASH }}
       
       - name: cdk diff
         uses: youyo/aws-cdk-github-actions@v2
@@ -51,7 +57,7 @@ jobs:
         uses: youyo/aws-cdk-github-actions@v2
         with:
           cdk_subcommand: 'deploy'
-          cdk_stack: 'SirinNodeStack1'
+          cdk_stack: 'SirinNodeStack'
           cdk_args: '--require-approval never'
           actions_comment: false
         env:
