@@ -16,19 +16,6 @@ const Device = mongoose.model('Device', {
   device_count: Number,
 })
 
-const getCommitHash = () => {
-  return new Promise((resolve, reject) => {
-    const git = simpleGit();
-    git.revparse(['HEAD'], (err, result) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(result.trim());
-      }
-    });
-  });
-}
-
 mongoose
   .connect(MONGO_URI, {useNewUrlParser: true})
   .then(() => { 
@@ -36,13 +23,11 @@ mongoose
     app.use(express.json())
 
     app.get('/', (req, res) => {
-       try {
-          const commitHash = getCommitHash()
-          res.json({commitHash: commitHash})
-       } catch(error) {
-          console.error(error);
-          res.status(500).json({ error: 'Internal Server Error' });
-       }
+      revision = require('child_process')
+        .execSync('git rev-parse HEAD')
+        .toString().trim()
+
+      res.json('Hello, AWS! ' + revision)
     });
 
     app.get('/devices', async (req, res) => {
