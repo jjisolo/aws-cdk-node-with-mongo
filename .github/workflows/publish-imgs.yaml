@@ -40,8 +40,8 @@ jobs:
           push: true
           tags: ghcr.io/jjisolo/node:main
           labels: ${{steps.meta.outputs.labels }}
-          env:
-            GIT_HASH: ${{ steps.git_hash.outputs.GIT_HASH }}
+        env:
+          GIT_HASH: ${{ steps.git_hash.outputs.GIT_HASH }}
       
       - name: cdk diff
         uses: youyo/aws-cdk-github-actions@v2
