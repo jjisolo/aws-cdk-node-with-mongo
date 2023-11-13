@@ -8,8 +8,12 @@ from aws_cdk import (
     aws_ssm as ssm,
 )
 
-
 class EcsStack(cdk.Stack):
+    """
+    This stack declares the template that
+    is needed for the AWS CloudFormation service.
+    """
+
     NODE_CONTAINER_REGISTRY_NAME  = "ghcr.io/jjisolo/node:main"
     MONGO_CONTAINER_REGISTRY_NAME = "mongo"
 
@@ -19,6 +23,14 @@ class EcsStack(cdk.Stack):
     HEALTH_CHECK_PATH = "/"
 
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
+        """
+        This function is a constructor for this class instance.
+        
+        It retrieves data from the secrets manager, intilizes 
+        the VPC and cluster and Fargate instance with two containers
+        inside of it. Also it configures ALB and HealthCheck.
+        """
+
         super().__init__(scope, construct_id, **kwargs)
 
         self.__init_secrets_manager()
@@ -36,6 +48,11 @@ class EcsStack(cdk.Stack):
         )
 
     def __init_secrets_manager(self) -> None:
+        """
+        This function is used to retrieve the data from the AWS
+        secrets manager.
+        """
+
         self.database_username = ssm.StringParameter.from_string_parameter_name(
             self, "MongoDbUsername",
             "/WorkTask/DatabaseUsername"
@@ -47,6 +64,12 @@ class EcsStack(cdk.Stack):
         ).string_value
 
     def __init_vpc_and_clusters(self) -> None:
+        """
+        This function is used to initialize the VPC with
+        two subntes inside of it: one is private and another
+        is public.
+        """
+
         # Create the VPC for the NodeJS container.
         self.vpc = ec2.Vpc(
             self,
@@ -72,6 +95,13 @@ class EcsStack(cdk.Stack):
         )
 
     def __init_docker_containers(self) -> None:
+        """
+        This function initializng the Fargate task with
+        two docker containers(one of the is MongoDB and
+        another is NodeJS app, that i wrote on my own and
+        deploued to the github container registry).
+        """
+
         # Create the Fargate task definition and attach the container
         # with the NodeJS app to it.
         self.server_task_definition = ecs.FargateTaskDefinition(
@@ -104,6 +134,11 @@ class EcsStack(cdk.Stack):
 
 
     def __init_health_check(self) -> None:
+        """
+        This function is used to initialize the HealthCheck for
+        the fartgate task definition.
+        """
+
         # Configure health check
         self.target_group1.configure_health_check(
             path=EcsStack.HEALTH_CHECK_PATH,
@@ -116,6 +151,11 @@ class EcsStack(cdk.Stack):
         )
 
     def __attach_alb(self) -> None:
+        """
+        This function is used to attach the ALB to the Fargate
+        service.
+        """
+
         self.load_balancer = elbv2.ApplicationLoadBalancer(self, "MyLoadBalancer", vpc=self.vpc, internet_facing=True)
         self.listener = self.load_balancer.add_listener("MyListener", port=80)
         self.fargate_service = ecs.FargateService(self, "MyFargateService1", cluster=self.cluster, task_definition=self.server_task_definition)

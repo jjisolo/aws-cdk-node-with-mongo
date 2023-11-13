@@ -1,5 +1,6 @@
 const express  = require('express' );
 const mongoose = require('mongoose');
+const simpleGit= require('simple-git')
 
 const port = 80; 
 
@@ -15,12 +16,34 @@ const Device = mongoose.model('Device', {
   device_count: Number,
 })
 
+const getCommitHash = () => {
+  return new Promise((resolve, reject) => {
+    const git = simpleGit();
+    git.revparse(['HEAD'], (err, result) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(result.trim());
+      }
+    });
+  });
+}
+
 mongoose
   .connect(MONGO_URI, {useNewUrlParser: true})
   .then(() => { 
     const app = express();
     app.use(express.json())
-    app.get('/', (req, res) => { res.send('Hello, AWS!');});
+
+    app.get('/', (req, res) => {
+       try {
+          const commitHash = getCommitHash()
+          res.json({commitHash: commitHash})
+       } catch(error) {
+          console.error(error);
+          res.status(500).json({ error: 'Internal Server Error' });
+       }
+    });
 
     app.get('/devices', async (req, res) => {
       try {
