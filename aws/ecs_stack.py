@@ -23,8 +23,6 @@ class EcsStack(cdk.Stack):
 
         self.__init_secrets_manager()
         self.__init_vpc_and_clusters()
-
-        self.__configure_ingress_rules()
         self.__init_docker_containers()
 
         self.__attach_alb()
@@ -34,7 +32,7 @@ class EcsStack(cdk.Stack):
         cdk.CfnOutput(
             self,
             "SirinNodeServiceURL",
-            value=f"http://{self.node_service.load_balancer.load_balancer_dns_name}"
+            value=f"http://{self.load_balancer.load_balancer_dns_name}"
         )
 
     def __init_secrets_manager(self) -> None:
@@ -81,18 +79,6 @@ class EcsStack(cdk.Stack):
             "SirinNodeTaskDefinition"
         )
 
-        self.mongo_server_container = self.server_task_definition.add_container(
-            "MongoServerContainer",
-            image=ecs.ContainerImage.from_registry(EcsStack.MONGO_CONTAINER_REGISTRY_NAME),
-            logging=ecs.LogDrivers.aws_logs(stream_prefix=EcsStack.MONGO_CONTAINER_LOG_ENTITY_NAME),
-            port_mappings=[ecs.PortMapping(container_port=27017)],
-            environment={
-                "MONGO_INITDB_ROOT_USERNAME": self.database_username,
-                "MONGO_INITDB_ROOT_PASSWORD": self.database_password,
-                "MONGO_INITDB_DATABASE"     : "mydatabase"
-            }
-        )
-
         self.nodejs_server_container = self.server_task_definition.add_container(
             "NodeServerContainer",
             image=ecs.ContainerImage.from_registry(EcsStack.NODE_CONTAINER_REGISTRY_NAME),
@@ -105,9 +91,21 @@ class EcsStack(cdk.Stack):
             }
         )
 
+        self.mongo_server_container = self.server_task_definition.add_container(
+            "MongoServerContainer",
+            image=ecs.ContainerImage.from_registry(EcsStack.MONGO_CONTAINER_REGISTRY_NAME),
+            logging=ecs.LogDrivers.aws_logs(stream_prefix=EcsStack.MONGO_CONTAINER_LOG_ENTITY_NAME),
+            environment={
+                "MONGO_INITDB_ROOT_USERNAME": self.database_username,
+                "MONGO_INITDB_ROOT_PASSWORD": self.database_password,
+                "MONGO_INITDB_DATABASE"     : "mydatabase"
+            }
+        )
+
+
     def __init_health_check(self) -> None:
         # Configure health check
-        self.node_service.target_group.configure_health_check(
+        self.target_group1.configure_health_check(
             path=EcsStack.HEALTH_CHECK_PATH,
             port='traffic-port',
             protocol=elbv2.Protocol.HTTP,
@@ -117,36 +115,9 @@ class EcsStack(cdk.Stack):
             unhealthy_threshold_count=10
         )
 
-    def __configure_ingress_rules(self) -> None:
-        """
-        self.nodejs_server_security_group = ec2.SecurityGroup(
-            self, "NodejsServerSecurityGroup", vpc=self.vpc
-        )
-
-        self.mongo_server_security_group = ec2.SecurityGroup(
-            self, "MongoServerSecurityGroup", vpc=self.vpc
-        )
-
-        self.mongo_server_security_group.add_ingress_rule(
-            self.nodejs_server_security_group,
-            ec2.Port.tcp(27017),
-            "Allow inbound access from the NodeJS server"
-        )
-        """
-
     def __attach_alb(self) -> None:
-        load_balancer = elbv2.ApplicationLoadBalancer(self, "MyLoadBalancer", vpc=self.vpc, internet_facing=True)
-        listener = load_balancer.add_listener("Listener", port=80)
-        target_group1 = listener.add_targets("TargetGroup1", port=80, targets=[self.nodejs_server_container])
-
-        self.node_service = ecs_patterns.ApplicationLoadBalancedFargateService(
-            "SirinNodeService",
-            cluster=self.cluster,
-            internet_facing=True,
-            task_definition=self.server_task_definition,
-            memory_limit_mib=4096,
-            load_balancer=load_balancer,
-            desired_count=1,
-            public_load_balancer=True,
-            #security_groups=[self.nodejs_server_security_group],
-        )
+        self.load_balancer = elbv2.ApplicationLoadBalancer(self, "MyLoadBalancer", vpc=self.vpc, internet_facing=True)
+        self.listener = self.load_balancer.add_listener("MyListener", port=80)
+        self.fargate_service = ecs.FargateService(self, "MyFargateService1", cluster=self.cluster, task_definition=self.server_task_definition)
+        self.target_group1 = self.listener.add_targets("TargetGroup1", port=80, targets=[self.fargate_service])
+        self.listener.add_target_groups("DefaultRule", target_groups=[self.target_group1])
