@@ -13,4 +13,4 @@ COPY . .
 
 EXPOSE 80 
 
-CMD ["GIT_HASH=", GIT_HASH, "./entrypoint.sh"]
+CMD ["./entrypoint.sh"]
