@@ -36,8 +36,8 @@ jobs:
           push: true
           tags: ghcr.io/jjisolo/node:main
           labels: ${{steps.meta.outputs.labels }}
-        secrets: |
-          "GIT_HASH=${{ github.sha }}"
+          secrets: |
+            "GIT_HASH=${{ github.sha }}"
      
       - name: cdk diff
         uses: youyo/aws-cdk-github-actions@v2
