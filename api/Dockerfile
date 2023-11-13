@@ -2,8 +2,8 @@ FROM node:20
 
 WORKDIR /usr/src/app
 
-RUN --mount=type=secret,id=git_hash
-RUN GIT_HASH=$(cat /run/secrets/git_hash)
+ARG GIT_HASH
+ENV GIT_HASH=${GIT_HASH}
 
 COPY package*.json ./
 
@@ -13,4 +13,4 @@ COPY . .
 
 EXPOSE 80 
 
-CMD ["GIT_HASH=", "${GIT_HASH}", "./entrypoint.sh"]
+CMD ["GIT_HASH=", GIT_HASH, "./entrypoint.sh"]
